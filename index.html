@@ -9,9 +9,9 @@
 :root{
   --bg-w:1366; --bg-h:1024;
 
-  /* ✅ 슬롯 위치/크기 */
+  /* ✅ 슬롯 위치/크기 (여기 숫자만 만지면 “딱 맞게” 조절됨) */
   --slot-left:531;
-  --slot-top:435;
+  --slot-top:435;     /* 기존 415 → 435 (필요하면 432~445 사이로 미세조정) */
   --slot-w:302;
   --slot-h:310;
 
@@ -53,7 +53,6 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  position:relative;
 }
 
 /* 마스크 */
@@ -87,17 +86,18 @@ body{
   align-items:center;
   justify-content:center;
   z-index:1;
-  font-size:28px;
+  font-size:clamp(16px, 2.4vw, 28px); /* 화면에 맞춰 자동 조절 */
+  line-height:1.25;
   font-weight:700;
   letter-spacing:-0.03em;
   color:var(--win-blue);
   text-shadow:
-  0 0 6px rgba(56,189,248,.6),
-  0 0 16px rgba(56,189,248,.4);
+    0 0 6px rgba(56,189,248,.6),
+    0 0 16px rgba(56,189,248,.4);
   text-align:center;
-  padding:0 12px;
+  padding:0 16px;
+  word-break:keep-all;
 }
-
 
 /* 회전 중 */
 .slot.spinning img{ filter: blur(1.6px); }
@@ -203,7 +203,7 @@ input[type="text"], input[type="number"]{
           <tbody id="stockBody"></tbody>
         </table>
         <div class="hint" id="probHint">
-          * 각 상품 확률 합계가 <b>정확히 100%</b>가 되도록 입력해 주세요.<br>
+          * 확률은 %로 입력, <b>합계가 정확히 100%</b>가 되도록 맞춰 주세요.<br>
           * 합이 100%가 아니면 뽑기가 실행되지 않습니다.<br>
           * 재고가 0인 항목은 뽑기에서 자동 제외됩니다.
         </div>
@@ -228,7 +228,7 @@ let state=JSON.parse(localStorage.getItem(KEY))||{
  items:defaultItems,
  stocks:{1:729,2:692,3:262,4:277,5:10000},
  last:1,
- probs:{1:10,2:10,3:10,4:10,5:60} // % 확률
+ probs:{1:10,2:10,3:10,4:10,5:60} // % 확률 (원하면 여기 숫자 바꿔도 됨)
 };
 
 /* 구버전 호환 + 5번 추가 */
@@ -237,7 +237,7 @@ if(!state.items || !state.items.length){
 }
 const existingIds = state.items.map(it=>Number(it.id));
 if(!existingIds.includes(5)){
-  state.items.push({id:5,name:"샘플 더블 증정!",src:""});
+  state.items.push({id:5,name:"샘플 더블 증정",src:""});
 }
 if(!state.stocks){
   state.stocks = {1:1000,2:1000,3:1000,4:1000,5:1000};
@@ -270,7 +270,7 @@ function setSlotById(id){
     // 텍스트만 노출
     slotImg.style.display="none";
     slotText.style.display="flex";
-    slotText.textContent = it.name || "샘플 더블 증정!";
+    slotText.textContent = it.name || "샘플 더블 증정";
   }else{
     slotText.style.display="none";
     slotImg.style.display="block";
@@ -281,11 +281,10 @@ slotImg.onerror = ()=>console.log("슬롯 이미지 로드 실패:", slotImg.src
 
 setSlotById(state.last);
 
-/* 확률 합 체크 */
+/* 확률 합 체크 (100%인지 확인) */
 function isProbSumValid(){
   const ids = state.items.map(x=>x.id);
   const sum = ids.reduce((a,id)=>a + (Number(state.probs[id])||0), 0);
-  // 소수점 보정
   return Math.round(sum*10)/10 === 100;
 }
 
@@ -361,7 +360,7 @@ function renderStock(){
   });
 }
 
-/* 뽑기: 재고>0 & 확률>0인 것만으로 확률 재정규화 */
+/* 뽑기: 재고>0 & 확률>0인 것만 */
 function pick(){
   const pool = state.items
     .map(it=>{
